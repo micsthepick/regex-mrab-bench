@@ -9,7 +9,7 @@ on:
 
 env:
   PYTHON_VER: '3.10'  # Python to run test/cibuildwheel
-  CIBW_BUILD: cp38-* cp39-* cp310-* cp311-* cp312-*
+  CIBW_BUILD: cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*
   CIBW_TEST_COMMAND: python -m unittest regex.test_regex
 
 jobs:

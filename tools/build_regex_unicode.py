@@ -1,4 +1,4 @@
-#! python3.11
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # This Python script parses the Unicode data files in the UCD.zip file and

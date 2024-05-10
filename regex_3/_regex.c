@@ -50,6 +50,7 @@
 #include "Python.h"
 #include "structmember.h" /* offsetof */
 #include <ctype.h>
+#include <time.h>
 #include "_regex.h"
 #include "pyport.h"
 #include "pythread.h"
