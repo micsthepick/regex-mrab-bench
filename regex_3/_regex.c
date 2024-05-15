@@ -17459,7 +17459,7 @@ Py_LOCAL_INLINE(int) do_best_fuzzy_match(RE_State* state, BOOL search) {
 
         /* Has an error occurred, or is it a partial match? */
         if (status < 0)
-            break;
+            goto error;
 
         if (status == RE_ERROR_FAILURE)
             break;
@@ -17479,11 +17479,11 @@ Py_LOCAL_INLINE(int) do_best_fuzzy_match(RE_State* state, BOOL search) {
             clear_best_list(&best_list);
             if (!add_to_best_list(state, &best_list, state->match_pos,
               state->text_pos))
-                goto error;
+                goto mem_error;
 
             clear_best_fuzzy_changes(state, &best_changes_list);
             if (!add_best_fuzzy_changes(state, &best_changes_list))
-                goto error;
+                goto mem_error;
         } else if (state->total_errors == fewest_errors) {
             /* This match was as good as the previous matches. Remember this
              * one.
@@ -17491,7 +17491,7 @@ Py_LOCAL_INLINE(int) do_best_fuzzy_match(RE_State* state, BOOL search) {
             add_to_best_list(state, &best_list, state->match_pos,
               state->text_pos);
             if (!add_best_fuzzy_changes(state, &best_changes_list))
-                goto error;
+                goto mem_error;
         }
 
         start_pos = state->match_pos;
@@ -17557,6 +17557,9 @@ Py_LOCAL_INLINE(int) do_best_fuzzy_match(RE_State* state, BOOL search) {
                         init_match(state);
                         status = basic_match(state, FALSE);
 
+                        if (status < 0)
+                            goto error;
+
                         if (status == RE_ERROR_SUCCESS) {
                             BOOL better = FALSE;
 
@@ -17575,12 +17578,12 @@ Py_LOCAL_INLINE(int) do_best_fuzzy_match(RE_State* state, BOOL search) {
                                 save_fuzzy_counts(state, best_fuzzy_counts);
                                 if (!save_fuzzy_changes(state,
                                   &best_fuzzy_changes))
-                                    goto error;
+                                    goto mem_error;
 
                                 best_groups = save_captures(state,
                                   best_groups);
                                 if (!best_groups)
-                                    goto error;
+                                    goto mem_error;
 
                                 best_match_pos = state->match_pos;
                                 best_text_pos = state->text_pos;
@@ -17645,6 +17648,9 @@ Py_LOCAL_INLINE(int) do_best_fuzzy_match(RE_State* state, BOOL search) {
                 init_match(state);
                 status = basic_match(state, search);
 
+                if (status < 0)
+                    goto error;
+
                 list = &best_changes_list.lists[0];
                 state->fuzzy_changes.count = list->count;
                 Py_MEMCPY(state->fuzzy_changes.items, list->items,
@@ -17664,10 +17670,13 @@ Py_LOCAL_INLINE(int) do_best_fuzzy_match(RE_State* state, BOOL search) {
 
     return status;
 
+mem_error:
+    status = RE_ERROR_MEMORY;
+
 error:
     fini_best_list(state, &best_list);
     fini_best_changes_list(state, &best_changes_list);
-    return RE_ERROR_MEMORY;
+    return status;
 }
 
 /* Performs a match or search from the current text position for an enhanced

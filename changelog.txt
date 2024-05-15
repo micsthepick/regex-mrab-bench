@@ -1,3 +1,17 @@
+Version: 2024.5.15
+
+    Git issue 530: hangs with fuzzy and optionals
+
+    It's not hanging, it'll finish eventually. It's just an example of catastrophic backtracking.
+
+    The error printed when Ctrl+C is pressed does show a bug, though, which is now fixed.
+
+Version: 2024.5.10
+
+    Updated for Python 3.13.
+
+    <time.h> now needs to be included explicitly because Python.h no longer includes it.
+
 Version: 2024.4.28
 
     Git issue 527: `VERBOSE`/`X` flag breaks `\N` escapes
