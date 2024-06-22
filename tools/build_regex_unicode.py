@@ -1733,6 +1733,16 @@ typedef RE_UINT32 (*RE_GetPropertyFunc)(RE_UINT32 codepoint);
 
         h_file.write('\n')
 
+        val_list = unique(properties[munge('Indic_Conjunct_Break')]['values'].values(),
+          key=id)
+        values = [(value['id'], value['names'][0]) for value in val_list]
+
+        for val_id, name in sorted(values):
+            h_file.write('#define RE_INCB_{} {}\n'.format(munge(name),
+              val_id))
+
+        h_file.write('\n')
+
         h_file.write('extern char* re_strings[{}];\n'.format(unicode_data['string_count']))
         h_file.write('extern RE_Property re_properties[{}];\n'.format(unicode_data['property_table_count']))
         h_file.write('extern RE_PropertyValue re_property_values[{}];\n'.format(unicode_data['valueset_table_count']))

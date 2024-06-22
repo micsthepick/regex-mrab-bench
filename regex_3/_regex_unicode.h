@@ -198,6 +198,11 @@ typedef RE_UINT32 (*RE_GetPropertyFunc)(RE_UINT32 codepoint);
 #define RE_LBREAK_REGIONALINDICATOR 46
 #define RE_LBREAK_EMODIFIER 47
 
+#define RE_INCB_NONE 0
+#define RE_INCB_EXTEND 1
+#define RE_INCB_CONSONANT 2
+#define RE_INCB_LINKER 3
+
 extern char* re_strings[1506];
 extern RE_Property re_properties[183];
 extern RE_PropertyValue re_property_values[1651];

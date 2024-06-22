@@ -1803,6 +1803,7 @@ static BOOL unicode_at_grapheme_boundary(RE_State* state, Py_ssize_t text_pos)
     Py_UCS4 right_char;
     RE_UINT32 left_prop;
     RE_UINT32 right_prop;
+    RE_UINT32 prop;
     Py_ssize_t pos;
 
     /* Break at the start and end of text, unless the text is empty. */
@@ -1873,6 +1874,38 @@ static BOOL unicode_at_grapheme_boundary(RE_State* state, Py_ssize_t text_pos)
     if (left_prop == RE_GBREAK_PREPEND)
         return FALSE;
 
+    /* The GB9c rule only applies to extended grapheme clusters: Do not break
+     * within certain combinations with Indic_Conjunct_Break (InCB)=Linker.
+     */
+    /* GB9c	*/
+    if (re_get_indic_conjunct_break(right_char) == RE_INCB_CONSONANT) {
+        BOOL has_linker;
+
+        has_linker = FALSE;
+        pos = left_pos;
+
+        do {
+            prop = re_get_indic_conjunct_break(char_at(state->text, pos));
+
+            switch (prop) {
+            case RE_INCB_LINKER:
+                has_linker = TRUE;
+                break;
+            case RE_INCB_EXTEND:
+                break;
+            case RE_INCB_CONSONANT:
+                if (has_linker)
+                    return FALSE;
+                goto end_GB9c;
+            default:
+                goto end_GB9c;
+            }
+
+            --pos;
+        } while (pos >= state->text_start);
+    }
+
+end_GB9c:
     /* Do not break within emoji modifier sequences or emoji zwj sequences. */
     /* GB11 */
     if (left_prop == RE_GBREAK_ZWJ && re_get_extended_pictographic(right_char))
