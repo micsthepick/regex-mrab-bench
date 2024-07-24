@@ -3,11 +3,6 @@ Introduction
 
 This regex implementation is backwards-compatible with the standard 're' module, but offers additional functionality.
 
-Note
-----
-
-The re module's behaviour with zero-width matches changed in Python 3.7, and this module follows that behaviour when compiled for Python 3.7.
-
 Python 2
 --------
 
@@ -327,20 +322,9 @@ Sometimes it's not clear how zero-width matches should be handled. For example, 
 
 .. sourcecode:: python
 
-  # Python 3.7 and later
   >>> regex.sub('.*', 'x', 'test')
   'xx'
   >>> regex.sub('.*?', '|', 'test')
-  '|||||||||'
-
-  # Python 3.6 and earlier
-  >>> regex.sub('(?V0).*', 'x', 'test')
-  'x'
-  >>> regex.sub('(?V1).*', 'x', 'test')
-  'xx'
-  >>> regex.sub('(?V0).*?', '|', 'test')
-  '|t|e|s|t|'
-  >>> regex.sub('(?V1).*?', '|', 'test')
   '|||||||||'
 
 Added ``capturesdict`` (`Hg issue 86 <https://github.com/mrabarnett/mrab-regex/issues/86>`_)
