@@ -447,6 +447,7 @@ typedef struct RE_RepeatOneStateData {
 typedef struct ByteStack {
     size_t capacity;
     size_t count;
+    size_t utilized_max;
     BYTE* storage;
 } ByteStack;
 
@@ -594,6 +595,9 @@ typedef struct MatchObject {
     Py_ssize_t lastgroup; /* Last named group seen by the engine (-1 if none). */
     size_t group_count; /* The number of groups. */
     RE_GroupData* groups; /* The capture groups. */
+    Py_ssize_t max_sstack_size; /* Maximum sstack size */
+    Py_ssize_t max_bstack_size; /* Maximum bstack size */
+    Py_ssize_t max_pstack_size; /* Maximum pstack size */
     PyObject* regs;
     size_t fuzzy_counts[RE_FUZZY_COUNT];
     RE_FuzzyChange* fuzzy_changes;
@@ -2264,6 +2268,7 @@ Py_LOCAL_INLINE(BOOL) safe_check_cancel(RE_State* state) {
 Py_LOCAL_INLINE(BOOL) ByteStack_init(RE_State* state, ByteStack* stack) {
     stack->capacity = 0;
     stack->count = 0;
+    stack->utilized_max = 0;
     stack->storage = NULL;
 
     return TRUE;
@@ -2275,11 +2280,13 @@ Py_LOCAL_INLINE(void) ByteStack_fini(RE_State* state, ByteStack* stack) {
     stack->storage = NULL;
     stack->capacity = 0;
     stack->count = 0;
+    stack->utilized_max = 0;
 }
 
 /* Resets a stack of bytes. */
 Py_LOCAL_INLINE(void) ByteStack_reset(RE_State* state, ByteStack* stack) {
     stack->count = 0;
+    stack->utilized_max = 0;
 }
 
 /* Pushes a byte onto a stack of bytes. */
@@ -2310,6 +2317,8 @@ Py_LOCAL_INLINE(BOOL) ByteStack_push(RE_State* state, ByteStack* stack, BYTE
     }
 
     stack->storage[stack->count++] = item;
+
+    if (stack->utilized_max < stack->count) stack->utilized_max = stack->count;
 
     return TRUE;
 }
@@ -2350,6 +2359,8 @@ Py_LOCAL_INLINE(BOOL) ByteStack_push_block(RE_State* state, ByteStack* stack,
 
     Py_MEMCPY(stack->storage + stack->count, block, count);
     stack->count = new_count;
+
+    if (stack->utilized_max < stack->count) stack->utilized_max = stack->count;
 
     return TRUE;
 }
@@ -20677,6 +20688,20 @@ static PyObject* scanner_match(ScannerObject* self, PyObject* unused) {
     return scanner_search_or_match(self, FALSE);
 }
 
+/* ScannerObject's 'bench' method. */
+static PyObject* scanner_bench(ScannerObject* self, PyObject* unused) {
+    PyObject* my_match = scanner_search_or_match(self, TRUE);
+    BOOL is_match = my_match != Py_None;
+    Py_DECREF(my_match);
+    RE_State state = self->state;
+    return Py_BuildValue(
+        "(innn)",
+        is_match,
+        state.sstack.utilized_max,
+        state.bstack.utilized_max,
+        state.pstack.utilized_max);
+}
+
 /* ScannerObject's 'search' method. */
 static PyObject* scanner_search(ScannerObject* self, PyObject* unused) {
     return scanner_search_or_match(self, TRUE);
@@ -20730,6 +20755,11 @@ PyDoc_STRVAR(scanner_match_doc,
     "match() --> MatchObject or None.\n\
     Match at the current position in the string.");
 
+PyDoc_STRVAR(scanner_bench_doc,
+    "bench() --> Tuple(int, int, int, int).\n\
+    Search from the current position in the string.\n\
+    Returns mysterious benchmarking stats.");
+
 PyDoc_STRVAR(scanner_search_doc,
     "search() --> MatchObject or None.\n\
     Search from the current position in the string.");
@@ -20737,6 +20767,7 @@ PyDoc_STRVAR(scanner_search_doc,
 /* ScannerObject's methods. */
 static PyMethodDef scanner_methods[] = {
     {"match", (PyCFunction)scanner_match, METH_NOARGS, scanner_match_doc},
+    {"bench", (PyCFunction)scanner_bench, METH_NOARGS, scanner_bench_doc},
     {"search", (PyCFunction)scanner_search, METH_NOARGS, scanner_search_doc},
     {"__copy__", (PyCFunction)scanner_copy, METH_NOARGS},
     {"__deepcopy__", (PyCFunction)scanner_deepcopy, METH_O},
